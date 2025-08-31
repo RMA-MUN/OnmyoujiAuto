@@ -1,1 +1,1 @@
-# OnmyoujiAuto
+详细情况请进入Onmyoji文件夹内查看
