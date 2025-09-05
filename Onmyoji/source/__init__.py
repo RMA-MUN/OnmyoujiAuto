@@ -29,7 +29,7 @@ MODE_MAPPING = {
 __all__ = ['mode_choice']
 
 # 模式选择函数
-def mode_choice(mode, sub_mode, times, config, window_title):
+def mode_choice(mode, sub_mode, times, config, window_title, speed):
     # 从映射字典获取模式配置
     folder_info = MODE_MAPPING.get(mode)
     if folder_info:
@@ -43,6 +43,6 @@ def mode_choice(mode, sub_mode, times, config, window_title):
         # 构建脚本路径
         script_dir = os.path.join(os.path.dirname(__file__), folder_name)
         # 执行通用挑战函数
-        common_challenge(times, config, script_dir, window_title)
+        common_challenge(times, config, script_dir, window_title, speed)
     else:
         print('暂不支持此模式，敬请期待！')
