@@ -1,7 +1,6 @@
 import win32gui
 import win32con
 import threading
-import ctypes
 
 from pynput import mouse
 from typing import List, Tuple
