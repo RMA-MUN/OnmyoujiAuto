@@ -1,3 +1,6 @@
+import yaml
+import os
+
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices
@@ -96,8 +99,23 @@ class Ui_Dialog(object):
         checkbox_layout.setSpacing(20)  # 按钮间距 20px
         checkbox_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)  # 左对齐
 
-        self.checkBox = QtWidgets.QCheckBox("阴阳师桌面版")
-        self.checkBox1 = QtWidgets.QCheckBox("MuMu模拟器5")
+        self.client_choose = QtWidgets.QComboBox()
+        self.client_choose.setObjectName("client_choose")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        client_path = os.path.join(script_dir, 'client.yaml')
+        # 读取client.yaml文件
+        with open(client_path, 'r', encoding='utf-8') as file:
+            client_info = yaml.safe_load(file)
+            # 只根据配置文件中的键值对数量添加选项
+            for key, value in client_info['title'].items():
+                self.client_choose.addItem(value)
+        # 添加下拉菜单到垂直布局
+        system_main_layout.addWidget(self.client_choose)
+
+        self.label_info = QtWidgets.QLabel("选择运行模式")
+
+        self.checkBox = QtWidgets.QCheckBox("快速模式")
+        self.checkBox1 = QtWidgets.QCheckBox("稳定模式")
 
         # 将check_box添加到水平布局
         checkbox_layout.addWidget(self.checkBox)
@@ -371,6 +389,7 @@ class Ui_Dialog(object):
         except Exception as e:
             print(f"样式表加载失败: {str(e)}")
 
+
     def open_link(self, url):
         QDesktopServices.openUrl(QUrl(url))
 
@@ -380,7 +399,7 @@ class Ui_Dialog(object):
             "1.新增多开功能，可通过本程序同时启动多个客户端""<br>"
             "2.新增窗口同步器的功能，在一个游戏的操作可以同步到其他游戏""<br>"
             "3.优化项目结构，对古老代码进行优化和封装""<br>"
-            " <a href='https://gitee.com/rma-mun/onmyoji-automation'>"
+            " <a href='https://github.com/RMA-MUN/OnmyoujiAuto'>"
             "点击跳转至仓库！"
             "</a>"
         )
