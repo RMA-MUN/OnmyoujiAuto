@@ -5,8 +5,7 @@
 import os
 from ..tools.OnmyojiAuto import OnmyjiAutomation
 
-
-def common_challenge(times, config, script_dir, window_title):
+def common_challenge(times, config, script_dir, window_title, speed):
     automation_obj = OnmyjiAutomation(window_title)
 
     i = 0
@@ -15,7 +14,7 @@ def common_challenge(times, config, script_dir, window_title):
         for key in config['image_paths']:
             img_path = os.path.join(script_dir, config['image_paths'][key])
             try:
-                if automation_obj.perform_action(img_path):
+                if automation_obj.perform_action(img_path, speed = speed):
                     # 执行开始操作后，i来充当计数器
                     if key == 'tiaozhan':
                         i += 1
