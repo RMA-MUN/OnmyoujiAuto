@@ -5,6 +5,7 @@ import threading
 import traceback
 import os
 import win32gui
+import yaml
 
 from typing import TextIO
 from PyQt6 import QtWidgets, QtCore, QtGui
@@ -134,6 +135,11 @@ class MainWindow(QtWidgets.QDialog):
         # alpha/255为透明度，值为1，则完全不透明，值为0，则完全透明
         self.alpha = 135
 
+        self.window_title = "阴阳师-网易游戏"
+        speed = "Fast"
+        self.ui.checkBox.setChecked(True)
+        self.ui.checkBox1.setChecked(False)
+
         # 信号与槽绑定
         self.ui.comboBox.currentTextChanged.connect(self.handle_mode_change)
         self.ui.pushButton.clicked.connect(self.window_detection)
@@ -150,6 +156,10 @@ class MainWindow(QtWidgets.QDialog):
         self.ui.start_sync_btn.clicked.connect(self.start_sync)
         self.ui.stop_sync_btn.clicked.connect(self.stop_sync)
         self.ui.arrange_btn.clicked.connect(self.arrange_connect)
+        self.ui.client_choose.currentTextChanged.connect(self.update_window_title)
+        self.ui.checkBox.clicked.connect(self.speed_chose)
+        self.ui.checkBox1.clicked.connect(self.speed_chose)
+
 
         # 给按钮绑定快捷键
         self.ui.pushButton.setShortcut("Ctrl+W")
@@ -162,6 +172,8 @@ class MainWindow(QtWidgets.QDialog):
         self.ui.pushButton.setToolTip("窗口检测 (Ctrl+W)")
         self.ui.pushButton_2.setToolTip("开始挑战 (Enter)")
         self.ui.pushButton_3.setToolTip("紧急停止 (Ctrl+E)")
+        self.ui.checkBox.setToolTip("刷本速度更快，但是安全性低")
+        self.ui.checkBox1.setToolTip("刷本速度更慢，但是安全性高")
 
         # 定向输出print
         self.log_redirect = LogRedirect(self.ui.textBrowser)
@@ -186,17 +198,27 @@ class MainWindow(QtWidgets.QDialog):
             qss_file.close()
 
         # 信号连接，使用 clicked 信号
-        self.ui.checkBox.clicked.connect(self.update_window_title)
-        self.ui.checkBox1.clicked.connect(self.update_window_title)
+        # self.ui.checkBox.clicked.connect(self.update_window_title)
+        # self.ui.checkBox1.clicked.connect(self.update_window_title)
 
         # 初始化 window_title
-        self.window_title = '阴阳师-网易游戏' if self.ui.checkBox.isChecked() else 'MuMu模拟器5'
+        # self.window_title = '阴阳师-网易游戏' if self.ui.checkBox.isChecked() else 'MuMu模拟器5'
 
     def update_window_title(self):
-        if self.ui.checkBox.isChecked():
+        # 根据下拉菜单的选择更新 window_title
+        selected_client = self.ui.client_choose.currentText()
+        if selected_client == '阴阳师桌面版':
             self.window_title = '阴阳师-网易游戏'
-        elif self.ui.checkBox1.isChecked():
+        elif selected_client == 'MuMu模拟器12':
+            self.window_title = 'MuMu模拟器12'
+        elif selected_client == 'MuMu模拟器5':
+            print("PS:MuMu模拟器5的窗口默认为MuMu安卓设备，如需修改，可自行修改client.yaml文件")
             self.window_title = 'MuMu安卓设备'
+        elif selected_client == '雷电模拟器':
+            self.window_title = '雷电模拟器'
+        else:
+            self.window_title = selected_client
+
         print(f"选择客户端为:{self.window_title}")
 
     # 刷新窗口按钮
@@ -242,6 +264,16 @@ class MainWindow(QtWidgets.QDialog):
             print(f"当前客户端大小：宽度 {window_size[2][0]}，高度 {window_size[2][1]}")
         # 调用 connect_all 函数，检查并调整窗口大小
         checker.connect_all()
+
+    def speed_chose(self):
+        if self.ui.checkBox.isChecked():
+            speed = "Fast"
+            print("已选择快速模式")
+        elif self.ui.checkBox1.isChecked():
+            speed = "Slow"
+            print("已选择稳定模式")
+        return speed
+
 
     def start_challenge(self, *args):
         """
@@ -306,7 +338,8 @@ class MainWindow(QtWidgets.QDialog):
                 sub_config_reader = ConfigReader(sub_config_path)
                 sub_config = sub_config_reader.read_config()
                 if sub_config:
-                    mode_choice(mode, sub_mode, times, config=sub_config, window_title=window_title)
+                    speed = self.speed_chose()
+                    mode_choice(mode, sub_mode, times, config=sub_config, window_title=window_title, speed=speed)
                 else:
                     print(f"读取 {sub_config_path} 配置文件失败。")
             else:
@@ -398,10 +431,19 @@ class MainWindow(QtWidgets.QDialog):
         """
         刷新窗口表格，从 WindowSynchronizer 获取窗口信息并更新到表格中。
         """
+        # 读取client.yaml文件并获取value的值存储到列表内
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        client_path = os.path.join(script_dir, 'client.yaml')
+        title_list = []
+        # 读取client.yaml文件
+        with open(client_path, 'r', encoding='utf-8') as file:
+            titles_get = yaml.safe_load(file)
+            for key, value in titles_get['title'].items():
+                title_list.append(value)
         # 使用WindowSynchronizer类中的方法获取窗口信息
         window_synchronizer = WindowSynchronizer()
         # 传入 window_titles 参数
-        window_info = window_synchronizer.get_all_windows(window_titles=["阴阳师-网易游戏", "MuMu模拟器12", "MuMu安卓设备"])
+        window_info = window_synchronizer.get_all_windows(window_titles=title_list)
         # 将窗口信息更新到表格中
         self.update_table_with_window_info(window_info)
 
