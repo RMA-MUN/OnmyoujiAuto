@@ -20,12 +20,11 @@ def get_all_visible_windows():
     def callback(hwnd, extra):
         if is_window_visible(hwnd):
             title = win32gui.GetWindowText(hwnd)
-            if title:  # 只添加有标题的窗口
-                # 获取窗口尺寸
+            if title and ("MuMu" in title or "阴阳师" in title or "模拟器"):
                 _, _, width, height = get_window_rect(hwnd)
-                # 过滤掉过小的窗口（可能是工具栏等）
-                if width > 100 and height > 100:
-                    windows.append((hwnd, title, width, height))
+                if width > 100 and height > 100: # 过滤掉过小的窗口，防止将工具窗口也包含进来
+                    if (hwnd, title, width, height) not in windows: # 过滤重复窗口
+                        windows.append((hwnd, title, width, height))
 
     win32gui.EnumWindows(callback, None)
     return windows
