@@ -274,6 +274,11 @@ class MainWindow(QtWidgets.QDialog):
             print("已选择稳定模式")
         return speed
 
+    # 清理死掉的线程
+    def clean_threads(self):
+        with self.lock:
+            self.active_threads = [t for t in self.active_threads if t.is_alive()]
+
 
     def start_challenge(self, *args):
         """
@@ -281,6 +286,7 @@ class MainWindow(QtWidgets.QDialog):
         mode: 挑战模式
         """
         # 添加最大线程数限制
+        self.clean_threads()
         MAX_THREADS = 5
         if len(self.active_threads) >= MAX_THREADS:
             QtWidgets.QMessageBox.warning(self, "提示", "已有任务在进行中，请等待完成")
