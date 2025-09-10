@@ -7,12 +7,16 @@ from ..tools.OnmyojiAuto import OnmyjiAutomation
 
 def common_challenge(times, config, script_dir, window_title, speed):
     automation_obj = OnmyjiAutomation(window_title)
+    # 预先构建好所有图片路径
+    image_paths= {
+        k: os.path.join(script_dir, v) for k, v in config['image_paths'].items()
+    }
 
     i = 0
     while i < times:
         # 动态遍历配置文件中的所有图片键
         for key in config['image_paths']:
-            img_path = os.path.join(script_dir, config['image_paths'][key])
+            img_path = image_paths[key]
             try:
                 if automation_obj.perform_action(img_path, speed = speed):
                     # 执行开始操作后，i来充当计数器
