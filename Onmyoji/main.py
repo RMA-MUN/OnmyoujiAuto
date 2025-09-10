@@ -1,8 +1,8 @@
 """
 @Author: RMA-MUN
 @email: n3032747608@163.com
-@Date: 2025/7/28/12:54
-@Version: 1.5.1
+@Date: 2025/9/06
+@Version: 1.5.2
 @Location: https://github.com/RMA-MUN/OnmyoujiAuto
 """
 
