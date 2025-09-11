@@ -9,6 +9,7 @@ import win32api
 import win32con
 import pyautogui
 import numpy as np
+from PIL import Image
 
 
 class OnmyjiAutomation:
@@ -27,15 +28,18 @@ class OnmyjiAutomation:
         self.lock = threading.Lock()
         self.shutdown_flag = False
 
-        # 节点时间控制核心参数（优化后）
+        # 节点时间控制核心参数
         self.base_interval = 0.01  # 基础节点间隔（秒）
         self.max_nodes = 8  # 减少最大节点数
         self.min_nodes = 2  # 减少最小节点数
         self.max_total_time = 1.2  # 缩短总流程上限
 
-        # 图像识别缓存
+        # 图像识别缓存和参数
         self.recognition_cache = {}
-        self.cache_timeout = 1.0  # 缓存超时时间（秒）
+        self.cache_timeout = 1.0
+        self.default_confidence = 0.75  # 默认置信度
+        self.low_confidence_threshold = 0.65  # 低置信度阈值（用于重试）
+        self.image_templates = {}
 
     def print_window_info(self):
         """输出窗口信息"""
@@ -49,14 +53,32 @@ class OnmyjiAutomation:
         x1, y1, x2, y2 = rect
         return (x1, y1, x2 - x1, y2 - y1)
 
+    def preload_image(self, logo_path):
+        """预加载并缓存图像模板"""
+        if logo_path not in self.image_templates:
+            try:
+                # 读取图像并进行预处理
+                image = Image.open(logo_path)
+                # 转换为RGB模式（如果不是）
+                if image.mode != 'RGB':
+                    image = image.convert('RGB')
+                # 可以在这里添加缩放、增强对比度等预处理
+                self.image_templates[logo_path] = image
+            except Exception as e:
+                print(f"警告：预加载图像 {logo_path} 失败：{str(e)}")
+                return False
+        return True
+
     @lru_cache(maxsize=32)
     def _get_scaled_logo(self, logo, scale=1.0):
         """缓存并返回缩放后的图像模板"""
-        # 这里也可以添加图像预处理逻辑，如缩放、灰度化
+        # 确保先预加载图像
+        self.preload_image(logo)
+        # 这里可以添加图像预处理逻辑，如缩放、灰度化
         return logo
 
-    def onmyji(self, logo, use_cache=True):
-        """图像识别 + 缓存机制"""
+    def onmyji(self, logo, use_cache=True, retry_with_lower_confidence=True):
+        """图像识别 + 缓存机制 + 智能重试"""
         current_time = time.time()
 
         # 检查缓存
@@ -69,13 +91,41 @@ class OnmyjiAutomation:
                     self.y1 = random.randint(y, y + height)
                 return cached_result is not None
 
-        # 执行图像识别
-        target = pyautogui.locateOnScreen(
-            logo,
-            confidence=0.75,
-            region=self.area,
-            grayscale=True
-        )
+        # 预加载图像
+        self.preload_image(logo)
+
+        # 执行图像识别，带重试机制
+        target = None
+        try:
+            # 首先使用默认置信度尝试
+            target = pyautogui.locateOnScreen(
+                logo,
+                confidence=self.default_confidence,
+                region=self.area,
+                grayscale=True
+            )
+
+            # 如果第一次识别失败且启用了低置信度重试
+            if target is None and retry_with_lower_confidence:
+                # 等待短暂时间，可能游戏画面正在变化
+                time.sleep(0.2)
+                # 使用较低的置信度重试
+                target = pyautogui.locateOnScreen(
+                    logo,
+                    confidence=self.low_confidence_threshold,
+                    region=self.area,
+                    grayscale=True
+                )
+        except pyautogui.ImageNotFoundException:
+            # 未找到图像时设置target为None
+            target = None
+            print(f"查找图片{logo}的可信度低于预期")
+        except OSError as e:
+            # 处理文件读取错误
+            print(f"警告：无法读取图像文件 {logo}，错误信息：{str(e)}")
+        except Exception as e:
+            # 处理其他未预期的错误
+            print(f"警告：图像识别过程中发生未知错误：{str(e)}")
 
         # 更新缓存
         self.recognition_cache[logo] = (target, current_time)
@@ -86,6 +136,7 @@ class OnmyjiAutomation:
             self.y1 = random.randint(y, y + height)
             return True
         return False
+
 
     def bezier_point(self, p0, p1, p2, t):
         """贝塞尔曲线计算，使用向量运算"""
@@ -177,38 +228,48 @@ class OnmyjiAutomation:
 
     def perform_action(self, logo, speed):
         # 先进行识别，减少锁持有时间
-        found = self.onmyji(logo)
-        if not found:
-            return False
-
-        with self.lock:  # 只在执行关键操作时持有锁
-            if speed == "Slow":
-                total_start = time.time()
-
-                # 执行移动
-                move_duration = self.fixed_interval_move((self.x1, self.y1))
-
-                # 执行点击
-                self.win32_double_click()
-
-                # 优化延迟时间
-                elapsed = time.time() - total_start
-                remaining = max(0.0, self.max_total_time - elapsed)
-                time.sleep(random.uniform(1.0, 2.0) + remaining)
-
-                # print(f"慢速模式下，移动耗时{move_duration:.3f}秒")
-                return True
-
-            elif speed == "Fast":
-                # 快速模式
-                self.move_mouse(self.x1, self.y1)
-                self.win32_double_click()
-                time.sleep(random.uniform(1.5, 3.0))
-                return True
-
-            else:
-                print("未知的运行模式")
+        try:
+            found = self.onmyji(logo)
+            if not found:
                 return False
+
+            with self.lock:  # 只在执行关键操作时持有锁
+                if speed == "Slow":
+                    total_start = time.time()
+
+                    # 执行移动
+                    move_duration = self.fixed_interval_move((self.x1, self.y1))
+
+                    # 执行点击
+                    self.win32_double_click()
+
+                    # 优化延迟时间
+                    elapsed = time.time() - total_start
+                    remaining = max(0.0, self.max_total_time - elapsed)
+                    time.sleep(random.uniform(1.0, 2.0) + remaining)  # 缩短等待时间
+
+                    return True
+
+                elif speed == "Fast":
+                    # 快速模式
+                    self.move_mouse(self.x1, self.y1)
+                    self.win32_double_click()
+                    time.sleep(random.uniform(1.5, 3.0))
+                    return True
+
+                else:
+                    print(f"警告：未知的运行模式 '{speed}'，使用默认速度")
+                    # 使用默认速度执行
+                    self.move_mouse(self.x1, self.y1)
+                    self.win32_double_click()
+                    time.sleep(random.uniform(1.5, 2.5))
+                    return True
+        except pyautogui.FailSafeException:
+            print("警告：触发了PyAutoGUI的安全模式，操作已停止")
+            return False
+        except Exception as e:
+            print(f"警告：执行操作时发生错误：{str(e)}")
+            return False
 
     def clear_cache(self):
         """清除识别缓存"""
