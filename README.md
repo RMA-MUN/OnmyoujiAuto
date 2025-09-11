@@ -51,9 +51,7 @@ pip install -r requirements.txt
 
 ### 基本操作
 1. 启动程序：
-   ```bash
-   python main.py
-   ```
+   在pycharm中安装完成依赖以后，右键运行main.py文件
 2. 在GUI界面选择客户端类型（阴阳师桌面版/MuMu模拟器）
 3. 选择目标副本模式（如"魂土"、"爬塔"等），部分模式需额外选择子模式（如魂土的"队长"或"队员"）
 4. 设置挑战次数（1-10000次）
@@ -94,6 +92,7 @@ pip install -r requirements.txt
 
 
 ![程序流程图](流程图.png)  
+
 
 
 
