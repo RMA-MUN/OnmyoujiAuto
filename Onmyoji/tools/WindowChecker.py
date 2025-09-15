@@ -10,6 +10,7 @@
 
 import win32gui
 import win32con
+import pywintypes
 
 from typing import Optional, Tuple
 from .OnmyojiAuto import OnmyjiAutomation
@@ -54,19 +55,33 @@ class WindowChecker:
         return None
 
     def resize_window(self, width: int, height: int, hwnd: Optional[int] = None):
-        if not hwnd:
-            if self.window_handle:
-                hwnd = self.window_handle
-            elif self.window_title:
-                hwnd = win32gui.FindWindow(None, self.window_title)
-            else:
-                print('窗口标题未设置且未提供窗口句柄')
-                return
+        try:
+            if not hwnd:
+                if self.window_handle:
+                    hwnd = self.window_handle
+                elif self.window_title:
+                    hwnd = win32gui.FindWindow(None, self.window_title)
+                else:
+                    print('窗口标题未设置且未提供窗口句柄')
+                    return
 
-        if hwnd:
-            win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, 0, 0, width, height, win32con.SWP_NOMOVE)
-        else:
-            print('未找到指定客户端窗口')
+            if hwnd:
+                # 添加异常处理，处理可能的访问拒绝错误
+                try:
+                    win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, 0, 0, width, height, win32con.SWP_NOMOVE)
+                    return True
+                except pywintypes.error as e:
+                    if e.winerror == 5:  # 错误代码5表示访问被拒绝
+                        print(f'无法调整窗口大小（访问被拒绝）。请确保程序以管理员身份运行，或手动调整窗口大小为{width}x{height}。')
+                    else:
+                        print(f'调整窗口大小时发生错误：{e}')
+                    return False
+            else:
+                print('未找到指定客户端窗口')
+                return False
+        except Exception as e:
+            print(f'调整窗口大小时发生未知错误：{e}')
+            return False
 
     def connect_all(self, target_width: int = 1404, target_height: int = 834) -> None:
         """执行完整窗口连接流程"""
@@ -78,11 +93,17 @@ class WindowChecker:
         if current_size:
             current_width, current_height = current_size[2]
             if current_width != target_width or current_height != target_height:
-                self.resize_window(target_width, target_height)
-                # 添加区域尺寸校验
+                # 尝试调整窗口大小，但不强制要求成功
+                resize_success = self.resize_window(target_width, target_height)
+                
+                # 检查调整后的尺寸
                 updated_size = self.get_window_info()
-                if updated_size[2] != (target_width, target_height):
-                    raise ValueError(f"窗口尺寸调整失败，当前尺寸：{updated_size[2]}")
+                if updated_size and (updated_size[2][0] != target_width or updated_size[2][1] != target_height):
+                    # 如果调整失败但已提供了窗口句柄，仍然继续运行
+                    if self.window_handle:
+                        print(f"警告：窗口尺寸不是标准尺寸({target_width}x{target_height})，当前尺寸：{updated_size[2]}。程序将继续运行，但可能影响自动化效果。")
+                    else:
+                        raise ValueError(f"窗口尺寸调整失败，当前尺寸：{updated_size[2]}")
 
     # 获取所有窗口
     @staticmethod
