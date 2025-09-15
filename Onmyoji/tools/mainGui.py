@@ -117,7 +117,7 @@ class MainWindow(QtWidgets.QDialog):
         # 设置表格列数为 3
         self.ui.window_table.setColumnCount(3)
         self.ui.window_table.setHorizontalHeaderLabels(["选择", "窗口信息", "窗口句柄"])
-        self.main_config_reader = ConfigReader('Onmyoji/config/config.yaml')
+        self.main_config_reader = ConfigReader('config/config.yaml')
         self.main_config = self.main_config_reader.read_config()
 
         self.sync = WindowSynchronizer()
