@@ -1,8 +1,8 @@
 import os
+from functools import lru_cache
+from typing import Optional
 
-from .common_challenge import common_challenge
-
-# 定义模式和对应文件夹名的映射字典
+# 定义模式和对应文件夹名的映射字典（保持原有结构）
 MODE_MAPPING = {
     '魂土': {
         'default': 'huntu',
@@ -18,8 +18,8 @@ MODE_MAPPING = {
     '觉醒': 'juexing',
     '爬塔': {
         'default': 'pata',
-        '门票' : 'pata',
-        '体力' : 'pata_tili',
+        '门票': 'pata',
+        '体力': 'pata_tili',
     },
     '灵染试炼': 'lingran',
     '御灵': 'yuling',
@@ -28,21 +28,40 @@ MODE_MAPPING = {
 
 __all__ = ['mode_choice']
 
-# 模式选择函数
-def mode_choice(mode, sub_mode, times, config, window_title, speed):
-    # 从映射字典获取模式配置
+# 带缓存的路径获取函数
+@lru_cache(maxsize=20)
+def get_script_dir(mode: str, sub_mode: Optional[str] = None) -> str:
+    """根据模式和子模式获取脚本目录（带缓存）"""
     folder_info = MODE_MAPPING.get(mode)
-    if folder_info:
-        # 处理带子模式的配置
-        if isinstance(folder_info, dict):
-            folder_name = folder_info.get(sub_mode, folder_info['default'])
-        # 处理简单配置
-        else:
-            folder_name = folder_info
+    if not folder_info:
+        raise ValueError(f"不支持的模式: {mode}")
 
-        # 构建脚本路径
-        script_dir = os.path.join(os.path.dirname(__file__), folder_name)
-        # 执行通用挑战函数
-        common_challenge(times, config, script_dir, window_title, speed)
+    if isinstance(folder_info, dict):
+        folder_name = folder_info.get(sub_mode, folder_info['default'])
+        if not folder_name:
+            raise ValueError(f"模式 {mode} 下无有效子模式配置: {sub_mode}")
     else:
+        folder_name = folder_info
+
+    script_dir = os.path.join(os.path.dirname(__file__), folder_name)
+    if not os.path.exists(script_dir):
+        raise FileNotFoundError(f"脚本目录不存在: {script_dir}")
+
+    return script_dir
+
+# 优化后的模式选择函数
+def mode_choice(mode, sub_mode, times, config, window_title, speed):
+    try:
+        # 调用缓存函数获取路径
+        script_dir = get_script_dir(mode, sub_mode)
+    except ValueError as e:
+        print(f"模式配置错误: {e}")
         print('暂不支持此模式，敬请期待！')
+        return
+    except FileNotFoundError as e:
+        print(f"路径错误: {e}")
+        return
+
+    # 执行通用挑战函数（保持原有逻辑）
+    from .common_challenge import common_challenge
+    common_challenge(times, config, script_dir, window_title, speed)
