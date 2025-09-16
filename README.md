@@ -1,9 +1,5 @@
 # OnmyojiAuto - 阴阳师自动化工具
 
-本程序由在校大学生闲时编写，水平有限，更新时间不定。
-
-测试环境：pycharm， win11，阴阳师桌面版，MuMU模拟器12，MuMu模拟器5
-
 程序背景图片
 ![阴阳师主题背景图](background.png)  
 （可自行替换背景图片：将替换后的png图片图片命名为`background.png`即可覆盖）
@@ -29,7 +25,7 @@ OnmyojiAuto是一款基于Python开发的阴阳师游戏自动化辅助工具，
 
 ### 1. 克隆仓库
 ```bash
-git clone https://github.com/RMA-MUN/OnmyoujiAuto/.git
+git clone https://github.com/username/onmyoji-automation.git  # 替换为实际GitHub仓库地址
 cd onmyoji-automation/Onmyoji
 ```
 
@@ -51,7 +47,9 @@ pip install -r requirements.txt
 
 ### 基本操作
 1. 启动程序：
-   在pycharm中安装完成依赖以后，右键运行main.py文件
+   ```bash
+   python main.py
+   ```
 2. 在GUI界面选择客户端类型（阴阳师桌面版/MuMu模拟器）
 3. 选择目标副本模式（如"魂土"、"爬塔"等），部分模式需额外选择子模式（如魂土的"队长"或"队员"）
 4. 设置挑战次数（1-10000次）
@@ -85,14 +83,16 @@ pip install -r requirements.txt
 - **多窗口同步失效**：确认主窗口和副窗口均已正确选择，主窗口需一直课件，副窗口可以最小化，但是需同时确保主副窗口大小不变
 - **执行挑战无效**：确保程序是以管理员身份运行，确保窗口大小不变且可见
 
+## 许可证（License）
+本项目采用 **MIT 许可证** 开源，您可以自由地使用、修改、分发本项目的代码，但需遵守以下核心约定：
+- 在所有副本或衍生作品中保留原版权声明和许可证信息；
+- 本项目提供“按现状”（AS IS）的使用，不承担任何明示或暗示的担保责任。
+
+完整的许可条款请查看项目根目录下的 [LICENSE 文件](./LICENSE)（点击可直接跳转）。
+
 ## 📞 联系作者
 - 邮箱：n3032747608@163.com
-- 如有侵权或违规请联系作者删除
 - 项目版本：v1.3.1
 
 
 ![程序流程图](流程图.png)  
-
-
-
-
