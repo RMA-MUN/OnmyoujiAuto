@@ -13,7 +13,6 @@ import win32con
 import pywintypes
 
 from typing import Optional, Tuple
-from .OnmyojiAuto import OnmyjiAutomation
 
 class WindowChecker:
     """窗口状态检查与操作类"""
@@ -25,7 +24,6 @@ class WindowChecker:
     def set_window_title(self, window_title: str) -> None:
         """设置窗口标题"""
         self.window_title = window_title
-        self.automation = OnmyjiAutomation(window_title)
 
     def set_window_handle(self, hwnd: int):
         # 添加设置窗口句柄的方法
