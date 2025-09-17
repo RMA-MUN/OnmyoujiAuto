@@ -6,7 +6,7 @@ import os
 import time
 from ..tools.OnmyojiAuto import OnmyjiAutomation
 
-def common_challenge(times, config, script_dir, window_title, speed):
+def common_challenge(times, config, script_dir, window_title, hidden_window=False):
     try:
         automation_obj = OnmyjiAutomation(window_title)
 
@@ -32,7 +32,7 @@ def common_challenge(times, config, script_dir, window_title, speed):
                 img_path = image_paths[key]
                 try:
                     # 尝试识别并执行操作，启用低置信度重试
-                    if automation_obj.perform_action(img_path, speed=speed):
+                    if automation_obj.perform_action(img_path, hidden_window=hidden_window):
                         # 执行开始操作后，i来充当计数器
                         if key == 'tiaozhan' or key == 'kaishi':
                             i += 1
@@ -45,8 +45,7 @@ def common_challenge(times, config, script_dir, window_title, speed):
                     else:
                         pass
                 except Exception as e:
-                    print(f"识别图片 '{key}' 时发生错误：{str(e)}")
-                    continue
+                    pass
 
         print(f"挑战完成！共执行{times}次挑战")
         return True
