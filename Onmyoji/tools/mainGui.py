@@ -136,9 +136,6 @@ class MainWindow(QtWidgets.QDialog):
         self.alpha = 135
 
         self.window_title = "阴阳师-网易游戏"
-        speed = "Fast"
-        self.ui.checkBox.setChecked(True)
-        self.ui.checkBox1.setChecked(False)
 
         # 信号与槽绑定
         self.ui.comboBox.currentTextChanged.connect(self.handle_mode_change)
@@ -157,8 +154,6 @@ class MainWindow(QtWidgets.QDialog):
         self.ui.stop_sync_btn.clicked.connect(self.stop_sync)
         self.ui.arrange_btn.clicked.connect(self.arrange_connect)
         self.ui.client_choose.currentTextChanged.connect(self.update_window_title)
-        self.ui.checkBox.clicked.connect(self.speed_chose)
-        self.ui.checkBox1.clicked.connect(self.speed_chose)
 
 
         # 给按钮绑定快捷键
@@ -172,8 +167,6 @@ class MainWindow(QtWidgets.QDialog):
         self.ui.pushButton.setToolTip("窗口检测 (Ctrl+W)")
         self.ui.pushButton_2.setToolTip("开始挑战 (Enter)")
         self.ui.pushButton_3.setToolTip("紧急停止 (Ctrl+E)")
-        self.ui.checkBox.setToolTip("刷本速度更快，但是安全性低")
-        self.ui.checkBox1.setToolTip("刷本速度更慢，但是安全性高")
 
         # 定向输出print
         self.log_redirect = LogRedirect(self.ui.textBrowser)
@@ -265,20 +258,10 @@ class MainWindow(QtWidgets.QDialog):
         # 调用 connect_all 函数，检查并调整窗口大小
         checker.connect_all()
 
-    def speed_chose(self):
-        if self.ui.checkBox.isChecked():
-            speed = "Fast"
-            print("已选择快速模式")
-        elif self.ui.checkBox1.isChecked():
-            speed = "Slow"
-            print("已选择稳定模式")
-        return speed
-
     # 清理死掉的线程
     def clean_threads(self):
         with self.lock:
             self.active_threads = [t for t in self.active_threads if t.is_alive()]
-
 
     def start_challenge(self, *args):
         """
@@ -309,11 +292,23 @@ class MainWindow(QtWidgets.QDialog):
                 sub_mode = '体力'
                 print(f"选择：{mode},{sub_mode}")
 
+        # 获取隐藏窗口捕获复选框状态
+        if self.ui.hidden_window_checkbox.isChecked():
+            hidden_window = True
+            print("已启用后台运行模式")
+            if "MuMu" in self.window_title or "模拟器" in self.window_title:
+                QtWidgets.QMessageBox.warning(self, "提示", "后台运行模式暂时不支持模拟器，请前往桌面版体验该功能，或等待后续更新！")
+                return
+        else:
+            hidden_window = False
+
+
         print(f"获取挑战次数：{times}，模式：{mode}")
+
 
         try:
             # 创建并管理线程
-            thread = threading.Thread(target=self.safe_mode_choice, args=(mode, sub_mode, times))
+            thread = threading.Thread(target=self.safe_mode_choice, args=(mode, sub_mode, times, hidden_window))
             thread.daemon = True
             with self.lock:
                 if self.shutdown_flag:
@@ -324,7 +319,7 @@ class MainWindow(QtWidgets.QDialog):
             print("请输入有效的整数挑战次数。")
 
     # 用锁来确保模式的选择只会选择一个
-    def safe_mode_choice(self, mode, sub_mode, times):
+    def safe_mode_choice(self, mode, sub_mode, times, hidden_window=False):
         try:
             with self.lock:  # 使用with语句自动管理锁
                 if self.shutdown_flag:
@@ -344,8 +339,7 @@ class MainWindow(QtWidgets.QDialog):
                 sub_config_reader = ConfigReader(sub_config_path)
                 sub_config = sub_config_reader.read_config()
                 if sub_config:
-                    speed = self.speed_chose()
-                    mode_choice(mode, sub_mode, times, config=sub_config, window_title=window_title, speed=speed)
+                    mode_choice(mode, sub_mode, times, config=sub_config, window_title=window_title, hidden_window=hidden_window)
                 else:
                     print(f"读取 {sub_config_path} 配置文件失败。")
             else:
