@@ -50,7 +50,7 @@ def get_script_dir(mode: str, sub_mode: Optional[str] = None) -> str:
     return script_dir
 
 # 优化后的模式选择函数
-def mode_choice(mode, sub_mode, times, config, window_title, speed):
+def mode_choice(mode, sub_mode, times, config, window_title, hidden_window=False):
     try:
         # 调用缓存函数获取路径
         script_dir = get_script_dir(mode, sub_mode)
@@ -64,4 +64,4 @@ def mode_choice(mode, sub_mode, times, config, window_title, speed):
 
     # 执行通用挑战函数（保持原有逻辑）
     from .common_challenge import common_challenge
-    common_challenge(times, config, script_dir, window_title, speed)
+    common_challenge(times, config, script_dir, window_title, hidden_window)
