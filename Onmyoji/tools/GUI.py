@@ -87,6 +87,11 @@ class Ui_Dialog(object):
         self.system = QtWidgets.QWidget()
         self.system.setObjectName("system")
 
+        # 隐藏窗口捕获复选框
+        self.hidden_window_checkbox = QtWidgets.QCheckBox("启用后台模式")
+        self.hidden_window_checkbox.setObjectName("hidden_window_checkbox")
+        self.hidden_window_checkbox.setToolTip("勾选此项后，游戏窗口可以被其他程序遮挡，程序依然可以正常执行任务")
+
         # 创建垂直布局用于放置label_info和水平布局
         system_main_layout = QtWidgets.QVBoxLayout(self.system)
         system_main_layout.setContentsMargins(0, 10, 0, 10)  # 上下边距 10px
@@ -112,26 +117,11 @@ class Ui_Dialog(object):
         # 添加下拉菜单到垂直布局
         system_main_layout.addWidget(self.client_choose)
 
-        self.label_info = QtWidgets.QLabel("选择运行模式")
-
-        self.checkBox = QtWidgets.QCheckBox("快速模式")
-        self.checkBox1 = QtWidgets.QCheckBox("稳定模式")
-
-        # 将check_box添加到水平布局
-        checkbox_layout.addWidget(self.checkBox)
-        checkbox_layout.addWidget(self.checkBox1)
-
-        # 将水平布局添加到垂直主布局
-        system_main_layout.addLayout(checkbox_layout)
+        # 添加隐藏窗口捕获复选框（移到客户端选择下拉菜单下方）
+        system_main_layout.addWidget(self.hidden_window_checkbox)
 
         group_box_layout.addWidget(self.system)
         main_layout.addWidget(self.groupBox)
-
-        # 两个选项只能选择一个
-        self.checkBox.setChecked(True)
-        self.checkBox1.setChecked(False)
-        self.checkBox.stateChanged.connect(lambda state: self.checkBox1.setChecked(not state))
-        self.checkBox1.stateChanged.connect(lambda state: self.checkBox.setChecked(not state))
 
         # 子选项区域水平布局
         self.soul_land_options = QtWidgets.QWidget()
@@ -396,9 +386,9 @@ class Ui_Dialog(object):
     def get_text(self):
         text = (
             "更新日志：""<br>"
-            "1.新增多开功能，可通过本程序同时启动多个客户端""<br>"
+            "1.新增后台运行模式，勾选后，窗口可以被完全遮挡，但是不能最小化""<br>"
             "2.新增窗口同步器的功能，在一个游戏的操作可以同步到其他游戏""<br>"
-            "3.优化项目结构，对古老代码进行优化和封装""<br>"
+            "3.修复已知bug""<br>"
             " <a href='https://github.com/RMA-MUN/OnmyoujiAuto'>"
             "点击跳转至仓库！"
             "</a>"
