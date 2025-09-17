@@ -1,19 +1,19 @@
 import random
 import threading
 import time
-import math
-from functools import lru_cache
-
 import win32gui
 import win32api
 import win32con
 import pyautogui
-import numpy as np
-from PIL import Image
+import random
 
+from PIL import Image
+from functools import lru_cache
+from .get_DC import WindowCapture
 
 class OnmyjiAutomation:
     def __init__(self, window_title):
+        self.window_title = window_title
         # 窗口信息获取与初始化
         self.hwnd = win32gui.FindWindow(None, window_title)
         if not self.hwnd:
@@ -24,21 +24,15 @@ class OnmyjiAutomation:
         self.x1, self.y1, self.width, self.height = self.area
         self.x2, self.y2 = self.x1 + self.width, self.y1 + self.height
 
+
         # 线程与控制变量
         self.lock = threading.Lock()
         self.shutdown_flag = False
 
-        # 节点时间控制核心参数
-        self.base_interval = 0.01  # 基础节点间隔（秒）
-        self.max_nodes = 8  # 减少最大节点数
-        self.min_nodes = 2  # 减少最小节点数
-        self.max_total_time = 1.2  # 缩短总流程上限
-
         # 图像识别缓存和参数
         self.recognition_cache = {}
         self.cache_timeout = 1.0
-        self.default_confidence = 0.75  # 默认置信度
-        self.low_confidence_threshold = 0.65  # 低置信度阈值（用于重试）
+        self.default_confidence = 0.85  # 默认置信度
         self.image_templates = {}
 
     def print_window_info(self):
@@ -51,7 +45,7 @@ class OnmyjiAutomation:
         """获取窗口矩形区域"""
         rect = win32gui.GetWindowRect(self.hwnd)
         x1, y1, x2, y2 = rect
-        return (x1, y1, x2 - x1, y2 - y1)
+        return x1, y1, x2 - x1, y2 - y1
 
     def preload_image(self, logo_path):
         """预加载并缓存图像模板"""
@@ -77,8 +71,8 @@ class OnmyjiAutomation:
         # 这里可以添加图像预处理逻辑，如缩放、灰度化
         return logo
 
-    def onmyji(self, logo, use_cache=True, retry_with_lower_confidence=True):
-        """图像识别 + 缓存机制 + 智能重试"""
+    def onmyji(self, logo, use_cache=True):
+        """图像识别 + 缓存机制"""
         current_time = time.time()
 
         # 检查缓存
@@ -94,38 +88,24 @@ class OnmyjiAutomation:
         # 预加载图像
         self.preload_image(logo)
 
-        # 执行图像识别，带重试机制
+        # 执行图像识别
         target = None
         try:
-            # 首先使用默认置信度尝试
             target = pyautogui.locateOnScreen(
                 logo,
                 confidence=self.default_confidence,
-                region=self.area,
-                grayscale=True
+                region=self.area
             )
-
-            # 如果第一次识别失败且启用了低置信度重试
-            if target is None and retry_with_lower_confidence:
-                # 等待短暂时间，可能游戏画面正在变化
-                time.sleep(0.2)
-                # 使用较低的置信度重试
-                target = pyautogui.locateOnScreen(
-                    logo,
-                    confidence=self.low_confidence_threshold,
-                    region=self.area,
-                    grayscale=True
-                )
         except pyautogui.ImageNotFoundException:
             # 未找到图像时设置target为None
             target = None
             print(f"查找图片{logo}的可信度低于预期")
         except OSError as e:
             # 处理文件读取错误
-            print(f"警告：无法读取图像文件 {logo}，错误信息：{str(e)}")
+           pass
         except Exception as e:
             # 处理其他未预期的错误
-            print(f"警告：图像识别过程中发生未知错误：{str(e)}")
+            pass
 
         # 更新缓存
         self.recognition_cache[logo] = (target, current_time)
@@ -136,27 +116,6 @@ class OnmyjiAutomation:
             self.y1 = random.randint(y, y + height)
             return True
         return False
-
-
-    def bezier_point(self, p0, p1, p2, t):
-        """贝塞尔曲线计算，使用向量运算"""
-        mt = 1.0 - t
-        mt_sq = mt * mt
-        t_sq = t * t
-
-        x = mt_sq * p0[0] + 2 * mt * t * p1[0] + t_sq * p2[0]
-        y = mt_sq * p0[1] + 2 * mt * t * p1[1] + t_sq * p2[1]
-        return (round(x), round(y))
-
-    def get_control_point(self, start, end):
-        """控制点生成算法"""
-        dx = end[0] - start[0]
-        dy = end[1] - start[1]
-
-        # 控制点计算简化
-        ctrl_x = start[0] + dx * 0.5 + random.uniform(-5, 5)
-        ctrl_y = start[1] + dy * 0.5 + random.uniform(-5, 5)
-        return (round(ctrl_x), round(ctrl_y))
 
     def move_mouse(self, x, y):
         """鼠标移动"""
@@ -171,98 +130,82 @@ class OnmyjiAutomation:
         # 更短的双击间隔
         time.sleep(0.03)
         win32api.mouse_event(flags, 0, 0, 0, 0)
+        
+    def calc_relative_position(self, absolute_x, absolute_y):
+        """
+        计算绝对坐标在窗口内的相对位置
+        :param absolute_x: 屏幕绝对X坐标
+        :param absolute_y: 屏幕绝对Y坐标
+        :return: 窗口内的相对坐标(x, y)
+        """
+        rect = win32gui.GetWindowRect(self.hwnd)
+        window_left, window_top, _, _ = rect
+        relative_x = absolute_x - window_left
+        relative_y = absolute_y - window_top
+        return relative_x, relative_y
+        
+    def send_click_message(self, relative_x, relative_y):
+        """
+        向指定窗口发送点击消息
+        :param relative_x: 窗口内相对X坐标
+        :param relative_y: 窗口内相对Y坐标
+        """
+        # 将相对坐标转换为LPARAM格式
+        l_param = relative_x | (relative_y << 16)
+        # 发送鼠标移动过去的信息
+        win32gui.PostMessage(self.hwnd, win32con.WM_MOUSEMOVE, 0, l_param)
+        # 发送鼠标左键按下消息
+        win32gui.PostMessage(self.hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, l_param)
+        # 发送鼠标左键释放消息
+        win32gui.PostMessage(self.hwnd, win32con.WM_LBUTTONUP, 0, l_param)
 
-    def calculate_movement_parameters(self, start_pos, end_pos):
-        """预计算移动参数，减少实时计算量"""
-        dx = end_pos[0] - start_pos[0]
-        dy = end_pos[1] - start_pos[1]
-        distance = math.hypot(dx, dy)
 
-        # 根据距离动态调整节点数和间隔
-        if distance < 50:
-            nodes = self.min_nodes
-            interval = self.base_interval * 1.5
-        elif distance < 200:
-            nodes = int(self.min_nodes + (self.max_nodes - self.min_nodes) * 0.5)
-            interval = self.base_interval
-        else:
-            nodes = self.max_nodes
-            interval = self.base_interval * 0.8
-
-        return nodes, interval, self.get_control_point(start_pos, end_pos)
-
-    def fixed_interval_move(self, end_pos):
-        """根据贝塞尔曲线算法移动鼠标"""
-        start_pos = win32api.GetCursorPos()
-        if start_pos == end_pos:
-            return 0.0
-
-        # 预计算所有参数
-        nodes, interval, ctrl = self.calculate_movement_parameters(start_pos, end_pos)
-
-        # 预生成所有贝塞尔曲线上的点
-        points = []
-        for i in range(nodes + 1):
-            t = i / nodes
-            points.append(self.bezier_point(start_pos, ctrl, end_pos, t))
-
-        # print(f"贝塞尔曲线上的点: {points}")
-
-        # 执行移动
-        start_time = time.time()
-        for i, (x, y) in enumerate(points):
-            if self.shutdown_flag:
-                return time.time() - start_time
-
-            self.move_mouse(x, y)
-
-            # 最后一个节点不等待
-            if i < nodes:
-                # 更精确的时间控制
-                target_time = start_time + i * interval
-                current_time = time.time()
-                if current_time < target_time:
-                    time.sleep(target_time - current_time)
-
-        return time.time() - start_time
-
-    def perform_action(self, logo, speed):
+    def perform_action(self, logo, hidden_window=False, threshold=0.85, grayscale=False, enhance_contrast=False, contrast_factor=1.0, blur_level=0, skip_preprocessing=True):
         # 先进行识别，减少锁持有时间
         try:
+            # 如果启用隐藏窗口捕获
+            if hidden_window:
+                # print("使用隐藏窗口捕获模式进行图像识别")
+                try:
+                    # 创建WindowCapture实例
+                    wc = WindowCapture(hwnd=self.hwnd)
+                    # 使用WindowCapture查找图像，并传递预处理参数
+                    position = wc.find_image_precise(logo, threshold=threshold, grayscale=grayscale, 
+                                                    enhance_contrast=enhance_contrast, contrast_factor=contrast_factor, 
+                                                    blur_level=blur_level, use_bitblt=True, skip_preprocessing=skip_preprocessing)
+                    if position:
+                        relative_x, relative_y = position
+                        # 直接发送点击消息
+                        self.send_click_message(relative_x, relative_y)
+                        time.sleep(random.uniform(1.5, 3.0))
+                        return True
+                    else:
+                        return False
+                except Exception as e:
+                    print(f"隐藏窗口捕获发生错误: {str(e)}")
+                    # 如果是模拟器后台模式不支持的特定异常，直接抛出，不再回退到常规方法
+                    if "后台模式操作暂不支持模拟器设备" in str(e):
+                        raise
+                    # 其他错误时回退到常规方法
+                    return self.perform_action(logo, hidden_window=False, threshold=threshold, grayscale=grayscale, enhance_contrast=enhance_contrast, contrast_factor=contrast_factor, blur_level=blur_level, skip_preprocessing=skip_preprocessing)
+                 
+            # 常规方法
             found = self.onmyji(logo)
             if not found:
                 return False
 
             with self.lock:  # 只在执行关键操作时持有锁
-                if speed == "Slow":
-                    total_start = time.time()
-
-                    # 执行移动
-                    move_duration = self.fixed_interval_move((self.x1, self.y1))
-
-                    # 执行点击
-                    self.win32_double_click()
-
-                    # 优化延迟时间
-                    elapsed = time.time() - total_start
-                    remaining = max(0.0, self.max_total_time - elapsed)
-                    time.sleep(random.uniform(1.0, 2.0) + remaining)  # 缩短等待时间
-
-                    return True
-
-                elif speed == "Fast":
-                    # 快速模式
-                    self.move_mouse(self.x1, self.y1)
-                    self.win32_double_click()
+                # 计算相对坐标
+                relative_x, relative_y = self.calc_relative_position(self.x1, self.y1)
+                if "MuMu" in self.window_title or "模拟器" in self.window_title:
+                    pyautogui.moveTo(self.x1, self.y1)
+                    pyautogui.doubleClick(self.x1, self.y1)
                     time.sleep(random.uniform(1.5, 3.0))
                     return True
-
+                # 发送点击消息
                 else:
-                    print(f"警告：未知的运行模式 '{speed}'，使用默认速度")
-                    # 使用默认速度执行
-                    self.move_mouse(self.x1, self.y1)
-                    self.win32_double_click()
-                    time.sleep(random.uniform(1.5, 2.5))
+                    self.send_click_message(relative_x, relative_y)
+                    time.sleep(random.uniform(1.5, 3.0))
                     return True
         except pyautogui.FailSafeException:
             print("警告：触发了PyAutoGUI的安全模式，操作已停止")
