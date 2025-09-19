@@ -17,8 +17,7 @@ OnmyojiAuto是一款基于Python开发的阴阳师游戏自动化辅助工具，
 - **丰富副本覆盖**：支持魂土、魂王、业原火、觉醒、爬塔（门票/体力）、灵染试炼、御灵、契灵探查等多种副本
 - **便捷操作体验**：图形化界面（GUI）设计，支持模式选择、次数设置等可视化操作
 - **多窗口协同**：支持桌面版窗口同步功能，可实现主窗口操作同步至副窗口
-- **智能识别机制**：基于图像识别技术自动寻找目标按钮（如"挑战"、"结束"等）并自动执行任务
-
+  
 
 ## 🛠️ 安装步骤
 
@@ -27,7 +26,7 @@ OnmyojiAuto是一款基于Python开发的阴阳师游戏自动化辅助工具，
 
 ### 1. 克隆仓库
 ```bash
-git clone https://github.com/username/onmyoji-automation.git  # 替换为实际GitHub仓库地址
+git clone https://github.com/RMA-MUN/OnmyoujiAuto.git
 cd onmyoji-automation/Onmyoji
 ```
 
@@ -90,9 +89,10 @@ pip install -r requirements.txt
 
 ## 📞 联系作者
 - 邮箱：n3032747608@163.com
-- 项目版本：v1.3.1
+- 项目版本：v1.4
 
 
 ![程序流程图](流程图.png)  
+
 
 
