@@ -22,7 +22,7 @@ OnmyojiAuto是一款基于Python开发的阴阳师游戏自动化辅助工具，
 ## 🛠️ 安装步骤
 
 ### 直接下载exe程序的压缩包
-[下载v1.4版本](https://github.com/RMA-MUN/OnmyoujiAuto/releases/download/OAT-v1.4/OAT-v1.4.zip)
+[下载v1.4版本](https://github.com/RMA-MUN/OnmyojiAuto/releases/download/OAT-v1.4/OAT-v1.4.zip)
 
 ### 1. 克隆仓库
 ```bash
@@ -93,6 +93,7 @@ pip install -r requirements.txt
 
 
 ![程序流程图](流程图.png)  
+
 
 
 
