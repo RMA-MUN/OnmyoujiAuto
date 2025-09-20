@@ -26,7 +26,7 @@ OnmyojiAuto是一款基于Python开发的阴阳师游戏自动化辅助工具，
 
 ### 1. 克隆仓库
 ```bash
-git clone https://github.com/RMA-MUN/OnmyoujiAuto.git
+git clone https://github.com/RMA-MUN/OnmyojiAuto.git
 cd onmyoji-automation/Onmyoji
 ```
 
@@ -93,6 +93,7 @@ pip install -r requirements.txt
 
 
 ![程序流程图](流程图.png)  
+
 
 
 
